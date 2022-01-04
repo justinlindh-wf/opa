@@ -56,6 +56,57 @@ func builtinReachable(bctx BuiltinContext, args []*ast.Term, iter func(*ast.Term
 	return iter(ast.NewTerm(reached))
 }
 
+// pathBuilder is called recursively to build an array of paths that are reachable from the root
+func pathBuilder(graph ast.Object, root *ast.Term, path []*ast.Term, paths []*ast.Term, reached ast.Set) []*ast.Term {
+	// If we've already reached this node, return current path (avoid infinite recursion)
+	if reached.Contains(root) {
+		return paths
+	}
+
+	if edges := graph.Get(root); edges != nil {
+		reached.Add(root)
+
+		path = append(path, root)
+		paths = append(paths, ast.ArrayTerm(path...))
+
+		foreachVertex(edges, func(neighbor *ast.Term) {
+			paths = pathBuilder(graph, neighbor, path, paths, reached)
+		})
+	}
+
+	return paths
+}
+
+func builtinReachablePaths(bctx BuiltinContext, args []*ast.Term, iter func(*ast.Term) error) error {
+	// Return the empty set if the first argument is not an object.
+	graph, ok := args[0].Value.(ast.Object)
+	if !ok {
+		return iter(ast.NewTerm(ast.NewSet()))
+	}
+
+	// This is a queue that holds all nodes we still need to visit.  It is
+	// initialised to the initial set of nodes we start out with.
+	var queue []*ast.Term
+	foreachVertex(args[1], func(t *ast.Term) {
+		queue = append(queue, t)
+	})
+
+	results := ast.NewSet()
+
+	for len(queue) > 0 {
+		node := queue[0]
+
+		// Find reachable paths from root node in queue and append array to the results set
+		paths := pathBuilder(graph, node, []*ast.Term{}, []*ast.Term{}, ast.NewSet())
+		results.Add(ast.ArrayTerm(paths...))
+
+		queue = queue[1:]
+	}
+
+	return iter(ast.NewTerm(results))
+}
+
 func init() {
 	RegisterBuiltinFunc(ast.ReachableBuiltin.Name, builtinReachable)
+	RegisterBuiltinFunc(ast.ReachablePathsBuiltin.Name, builtinReachablePaths)
 }
