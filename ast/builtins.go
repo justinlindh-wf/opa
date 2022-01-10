@@ -80,6 +80,7 @@ var DefaultBuiltins = [...]*Builtin{
 	// Arrays
 	ArrayConcat,
 	ArraySlice,
+	ArrayReverse,
 
 	// Conversions
 	ToNumber,
@@ -111,6 +112,7 @@ var DefaultBuiltins = [...]*Builtin{
 	Concat,
 	FormatInt,
 	IndexOf,
+	IndexOfN,
 	Substring,
 	Lower,
 	Upper,
@@ -127,6 +129,7 @@ var DefaultBuiltins = [...]*Builtin{
 	TrimSuffix,
 	TrimSpace,
 	Sprintf,
+	StringReverse,
 
 	// Numbers
 	NumbersRange,
@@ -718,6 +721,17 @@ var ArraySlice = &Builtin{
 	),
 }
 
+// ArrayReverse returns a given array, reversed
+var ArrayReverse = &Builtin{
+	Name: "array.reverse",
+	Decl: types.NewFunction(
+		types.Args(
+			types.NewArray(nil, types.A),
+		),
+		types.NewArray(nil, types.A),
+	),
+}
+
 /**
  * Conversions
  */
@@ -880,6 +894,18 @@ var IndexOf = &Builtin{
 			types.S,
 		),
 		types.N,
+	),
+}
+
+// IndexOfN returns a list of all the indexes of a substring contained inside a string
+var IndexOfN = &Builtin{
+	Name: "indexof_n",
+	Decl: types.NewFunction(
+		types.Args(
+			types.S,
+			types.S,
+		),
+		types.NewArray(nil, types.N),
 	),
 }
 
@@ -1076,6 +1102,17 @@ var Sprintf = &Builtin{
 		types.Args(
 			types.S,
 			types.NewArray(nil, types.A),
+		),
+		types.S,
+	),
+}
+
+// StringReverse returns the given string, reversed.
+var StringReverse = &Builtin{
+	Name: "strings.reverse",
+	Decl: types.NewFunction(
+		types.Args(
+			types.S,
 		),
 		types.S,
 	),
