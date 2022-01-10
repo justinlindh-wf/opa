@@ -23,8 +23,6 @@ cases:
     want_result:
       - x:
           - - - b
-            - - b
               - d
           - - - e
-            - - e
               - f

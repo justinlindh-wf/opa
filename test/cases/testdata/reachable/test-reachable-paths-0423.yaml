@@ -18,9 +18,6 @@ cases:
   query: data.generated.p = x
   want_result:
   - x:
-    - - - a
-      - - a
-        - b
-      - - a
-        - b
-        - c
+      - - - a
+          - b
+          - c

@@ -7,17 +7,19 @@ cases:
         
         p = __local0__ {
           graph.reachable_paths({
-            "a": ["b"],
+            "a": ["b", "c"],
             "b": ["c"],
-            "c": ["a"],
-          }, ["a"], __local1__)
+            "c": [],
+          }, {"a"}, __local1__)
           sort(__local1__, __local2__)
           __local0__ = __local2__
         }
-    note: reachable_paths/arrays
+    note: reachable_paths/multiple_paths
     query: data.generated.p = x
     want_result:
       - x:
           - - - a
               - b
+              - c
+            - - a
               - c

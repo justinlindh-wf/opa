@@ -18,6 +18,18 @@ func foreachVertex(collection *ast.Term, f func(*ast.Term)) {
 	}
 }
 
+// Helper: useful for determining the number of edges in either an Array or Set.
+func numberOfEdges(collection *ast.Term) int {
+	switch v := collection.Value.(type) {
+	case ast.Set:
+		return v.Len()
+	case *ast.Array:
+		return v.Len()
+	}
+
+	return 0
+}
+
 func builtinReachable(bctx BuiltinContext, args []*ast.Term, iter func(*ast.Term) error) error {
 	// Return the empty set if the first argument is not an object.
 	graph, ok := args[0].Value.(ast.Object)
@@ -58,20 +70,22 @@ func builtinReachable(bctx BuiltinContext, args []*ast.Term, iter func(*ast.Term
 
 // pathBuilder is called recursively to build an array of paths that are reachable from the root
 func pathBuilder(graph ast.Object, root *ast.Term, path []*ast.Term, paths []*ast.Term, reached ast.Set) []*ast.Term {
-	// If we've already reached this node, return current path (avoid infinite recursion)
-	if reached.Contains(root) {
-		return paths
-	}
-
 	if edges := graph.Get(root); edges != nil {
-		reached.Add(root)
-
 		path = append(path, root)
-		paths = append(paths, ast.ArrayTerm(path...))
 
-		foreachVertex(edges, func(neighbor *ast.Term) {
-			paths = pathBuilder(graph, neighbor, path, paths, reached)
-		})
+		if numberOfEdges(edges) >= 1 {
+			foreachVertex(edges, func(neighbor *ast.Term) {
+				if reached.Contains(neighbor) {
+					// If we've already reached this node, return current path (avoid infinite recursion)
+					paths = append(paths, ast.ArrayTerm(path...))
+				} else {
+					reached.Add(root)
+					paths = pathBuilder(graph, neighbor, path, paths, reached)
+				}
+			})
+		} else {
+			paths = append(paths, ast.ArrayTerm(path...))
+		}
 	}
 
 	return paths
@@ -96,9 +110,21 @@ func builtinReachablePaths(bctx BuiltinContext, args []*ast.Term, iter func(*ast
 	for len(queue) > 0 {
 		node := queue[0]
 
-		// Find reachable paths from root node in queue and append array to the results set
-		paths := pathBuilder(graph, node, []*ast.Term{}, []*ast.Term{}, ast.NewSet())
-		results.Add(ast.ArrayTerm(paths...))
+		var nodeResults []*ast.Term
+
+		// Find reachable paths from edges in root node in queue and append arrays to the results set
+		if edges := graph.Get(node); edges != nil {
+			if numberOfEdges(edges) >= 1 {
+				foreachVertex(edges, func(neighbor *ast.Term) {
+					paths := pathBuilder(graph, neighbor, []*ast.Term{node}, []*ast.Term{}, ast.NewSet(node))
+					nodeResults = append(nodeResults, paths...)
+				})
+			} else {
+				nodeResults = append(nodeResults, ast.ArrayTerm(node))
+			}
+		}
+
+		results.Add(ast.ArrayTerm(nodeResults...))
 
 		queue = queue[1:]
 	}
